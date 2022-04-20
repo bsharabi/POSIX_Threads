@@ -1,5 +1,4 @@
 CXXFLAGS=-std=$(CXXVERSION) -Werror -Wsign-conversion -I$(SOURCE_PATH)
-
 CXX=clang++-9
 CXXVERSION=c++2a
 SOURCE_PATH=.
@@ -8,18 +7,18 @@ HEADERS=$(wildcard $(SOURCE_PATH)/*.hpp)
 TIDY_FLAGS=-extra-arg=-std=$(CXXVERSION) -checks=bugprone-*,clang-analyzer-*,cppcoreguidelines-*,performance-*,portability-*,readability-*,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-owning-memory --warnings-as-errors=*
 VALGRIND_FLAGS=-v --leak-check=full --show-leak-kinds=all  --error-exitcode=99
 SOURCES=$(wildcard $(SOURCE_PATH)/*.cpp)
-OBJECTS=$(subst sources/,objects/,$(subst .cpp,.o,$(SOURCES)))
-# run: client server test
-run: client server 
+OBJECTS=$(subst .cpp,.o,$(SOURCES))
+# run: iclient server test
+run: iclient server test
 
-client:client.o
+iclient:iclient.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 server:server.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ -pthread
 
-# test: Test.o 
-# 	$(CXX) $(CXXFLAGS) $^ -o test
+test: TestCounter.o Test.o 
+	$(CXX) $(CXXFLAGS) $^ -o test -pthread
 
 %.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) --compile $< -o $@
@@ -34,5 +33,13 @@ valgrind: server
 	valgrind --tool=memcheck $(VALGRIND_FLAGS) ./server 
 
 clean:
-	rm -f $(OBJECTS) *.o client server
+	rm -f $(OBJECTS) *.o iclient server test
 	
+client:
+	./iclient
+
+iserver:
+	./server
+
+tester:
+	./test

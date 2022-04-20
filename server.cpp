@@ -8,6 +8,10 @@ void yellow()
 {
     printf("\033[1;33m");
 }
+void blue()
+{
+    printf("\033[0;34m");
+}
 void reset()
 {
     printf("\033[0m");
@@ -35,10 +39,8 @@ void sig_handler(int signum)
         yellow();
         printf("I'm the second signal, trying to divide\n");
     default:
-
         close(listenFd);
         reset();
-        exit(1);
     }
 }
 Stack *newNode(char *data)
@@ -96,7 +98,7 @@ int server()
     // }
 
     // portNo = atoi(argv[1]);
-    portNo = htons(3006);
+    portNo = htons(3011);
     if ((portNo > 65535) || (portNo < 2000))
     {
         std::cerr << "Please enter a port number between 2000 - 65535" << std::endl;
@@ -197,6 +199,7 @@ void *task1(void *dummyPt)
         }
         if (strncmp(reader, "PUSH", 4) == 0)
         {
+            puts("Pushed");
             push(&my_stack, reader + 5);
             send(sock, "Pushed", 6, 0);
         }
@@ -214,6 +217,23 @@ void *task1(void *dummyPt)
         {
             writer = top(my_stack);
             write(sock, (writer != NULL) ? writer : "Empty", (writer != NULL) ? sizeof(writer) : em);
+        }
+        else if (strncmp(reader, "COUNT", 5) == 0)
+        {
+            int number = size;
+            char numberArray[10] = {0};
+            if (size != 0)
+            {
+                for (int n = log10(size) + 1, i = n - 1; i >= 0; --i, number /= 10)
+                {
+                    numberArray[i] = (number % 10) + '0';
+                }
+                write(sock, numberArray, 10);
+            }
+            else
+            {
+                write(sock, "0", 1);
+            }
         }
         else if (strncmp(reader, "exit", 4) == 0)
         {
