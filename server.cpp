@@ -1,5 +1,18 @@
 #include "server.hpp"
+#include "malloc.h"
 #define em 5
+/**
+ * @brief The functions welcome,red,yellow,blue,green and reset are just for fun
+ * We want you to enjoy the proccess :)
+ */
+void welcome()
+{
+    printf("\033[1;31m    $$      $$$$$  $$$$$$$$$ $     $         \033[1;34m $$$$$         $$     $$$$$       $$      $  $    \n");
+    printf("\033[1;31m   $  $     $   $      $      $   $          \033[1;34m $   $        $  $    $   $      $  $     $ $    \n");
+    printf("\033[1;31m  $ -- $    $$$$$      $        $    \033[1;33m @@@@@@ \033[1;34m $$$$$$$     $ -- $   $$$$$     $ -- $    $$        \n");
+    printf("\033[1;31m $      $   $    $     $        $            \033[1;34m $     $    $      $  $    $   $      $   $ $         \n");
+    printf("\033[1;31m$        $  $     $    $        $            \033[1;34m $$$$$$$   $        $ $     $ $        $  $  $       \n");
+}
 void red()
 {
     printf("\033[1;31m");
@@ -12,41 +25,54 @@ void blue()
 {
     printf("\033[0;34m");
 }
+void green()
+{
+    printf("\033[0;32m");
+}
 void reset()
 {
     printf("\033[0m");
 }
-void free(Stack **root)
+void free_stack(Stack **root)
 {
+    pthread_mutex_lock(&lock);
     while (*root)
     {
         Stack *temp = *root;
         *root = (*root)->next;
-        free(temp->data);
+        _free(temp->data);
         delete temp;
     }
-    std::cout << "free" << std::endl;
+
+    *root = NULL;
+    pthread_mutex_unlock(&lock);
+
+    std::cout << "free all allocate" << std::endl;
 }
 void sig_handler(int signum)
 {
-    free(my_stack);
+    free_stack(&my_stack);
     switch (signum)
     {
     case SIGTSTP:
         red();
-        printf("I'm the first signal..\n");
+        puts("");
+        printf("Trying to exit on CONTROL-Z command\n");
     case SIGINT:
         yellow();
-        printf("I'm the second signal, trying to divide\n");
+        printf("Trying to exit on CONTROL-C command\n");
+    case SIGQUIT:
+        green();
+        printf("Trying to exit on CONTROL-/ command\n");
     default:
         close(listenFd);
-        reset();
+        std::cout << "Closing Server" << std::endl;
     }
 }
 Stack *newNode(char *data)
 {
     Stack *stack = new Stack();
-    stack->data = strcpy((char *)malloc(BUFFSIZE), data);
+    stack->data = strcpy((char *)_malloc(BUFFSIZE), data);
     stack->next = NULL;
     return stack;
 }
@@ -88,21 +114,30 @@ char *top(Stack *root)
     pthread_mutex_unlock(&lock);
     return s;
 }
-int server()
+int server(int argc, char *argv[])
 {
 
-    // if (argc < 2)
-    // {
-    //     std::cerr << "Syntam : ./server <port>" << std::endl;
-    //     return 0;
-    // }
-
-    // portNo = atoi(argv[1]);
-    portNo = htons(3011);
-    if ((portNo > 65535) || (portNo < 2000))
+    if (argc >= 2)
     {
-        std::cerr << "Please enter a port number between 2000 - 65535" << std::endl;
-        return 0;
+        try
+        {
+            portNo = atoi(argv[1]);
+            if ((portNo > 65535) || (portNo < 2000))
+            {
+                throw std::invalid_argument("Please enter a port number between 2000 - 65535");
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << e.what() << '\n';
+            portNo = htons(3000);
+            std::cout << "Port :" << portNo << std::endl;
+        }
+    }
+    else
+    {
+        portNo = htons(3000);
+        std::cout << "Port :" << portNo << std::endl;
     }
 
     // create socket
@@ -143,12 +178,14 @@ int server()
 }
 int main(int argc, char *argv[])
 {
-
+    welcome();
+    reset();
     signal(SIGINT, sig_handler);
     signal(SIGTSTP, sig_handler);
-    if (!server())
+    signal(SIGQUIT, sig_handler);
+    if (!server(argc, argv))
         return 0;
-    while (noThread < 3)
+    while (noThread < 100)
     {
         std::cout << "Listening" << std::endl;
         socklen_t len = sizeof(clntAdd);
@@ -172,15 +209,12 @@ int main(int argc, char *argv[])
         noThread++;
     }
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 100; i++)
     {
         pthread_join(threadA[i], NULL);
     }
-    free(&my_stack);
-    // for (auto &thread : threadB) // access by reference to avoid copying
-    // {
-    //     pthread_join(thread, NULL);
-    // }
+    if (size != 0)
+        free_stack(&my_stack);
 }
 void *task1(void *dummyPt)
 {
@@ -195,7 +229,7 @@ void *task1(void *dummyPt)
         bzero(reader, BUFFSIZE);
         if (read(sock, reader, BUFFSIZE) == -1)
         {
-            puts("erro");
+            puts("error");
         }
         if (strncmp(reader, "PUSH", 4) == 0)
         {
@@ -209,7 +243,7 @@ void *task1(void *dummyPt)
             write(sock, (temp != NULL) ? temp->data : "Empty", (temp != NULL) ? sizeof(temp->data) : em);
             if (temp != NULL)
             {
-                free(temp->data);
+                _free(temp->data);
                 delete temp;
             }
         }
@@ -235,7 +269,13 @@ void *task1(void *dummyPt)
                 write(sock, "0", 1);
             }
         }
-        else if (strncmp(reader, "exit", 4) == 0)
+        else if (strncmp(reader, "CLEAN", 5) == 0)
+        {
+            if (size != 0)
+                free_stack(&my_stack);
+            write(sock, "Clean stack succeeded", 21);
+        }
+        else if (strncmp(reader, "EXIT", 4) == 0)
         {
             write(sock, "succ", 4);
             close(sock);
@@ -244,7 +284,7 @@ void *task1(void *dummyPt)
         }
         else
         {
-            write(sock, "Invaild commands", 16);
+            write(sock, "(-1)", 4);
         }
     }
     return 0;
