@@ -45,6 +45,7 @@ void free_stack(Stack **root)
     }
 
     *root = NULL;
+    size=0;
     pthread_mutex_unlock(&lock);
 
     std::cout << "free all allocate" << std::endl;
