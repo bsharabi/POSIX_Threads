@@ -45,7 +45,7 @@ void free_stack(Stack **root)
     }
 
     *root = NULL;
-    size=0;
+    size = 0;
     pthread_mutex_unlock(&lock);
 
     std::cout << "free all allocate" << std::endl;
@@ -131,13 +131,13 @@ int server(int argc, char *argv[])
         catch (const std::exception &e)
         {
             std::cerr << e.what() << '\n';
-            portNo = htons(3000);
+            portNo = htons(3003);
             std::cout << "Port :" << portNo << std::endl;
         }
     }
     else
     {
-        portNo = htons(3000);
+        portNo = htons(3003);
         std::cout << "Port :" << portNo << std::endl;
     }
 
@@ -179,6 +179,7 @@ int server(int argc, char *argv[])
 }
 int main(int argc, char *argv[])
 {
+    red();
     welcome();
     reset();
     signal(SIGINT, sig_handler);
@@ -273,7 +274,9 @@ void *task1(void *dummyPt)
         else if (strncmp(reader, "CLEAN", 5) == 0)
         {
             if (size != 0)
+            {
                 free_stack(&my_stack);
+            }
             write(sock, "Clean stack succeeded", 21);
         }
         else if (strncmp(reader, "EXIT", 4) == 0)
