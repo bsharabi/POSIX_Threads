@@ -17,7 +17,7 @@ $ "EXIT" : to exit the programm and close the connection between the client and 
 ## Running Programm:
 ```bash
 # Clone the repository
-$ git clone https://github.com/MightyArty/Synchronized_Threads.git
+$ git clone https://github.com/bsharabi/Synchronized_Threads
 # Go into the repository
 $ cd Synchronized_Threads
 # Open the terminal on Linux
@@ -30,7 +30,7 @@ $ Run Iclient "./iclient"
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/MightyArty/Synchronized_Threads.git
+$ git clone https://github.com/bsharabi/Synchronized_Threads
 # Go into the repository
 $ cd Synchronized_Threads
 # Open the terminal on Linux
